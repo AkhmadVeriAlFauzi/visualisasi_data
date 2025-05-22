@@ -82,6 +82,7 @@ if mode == 'card':
                 **{row.get('kab_kota', '')}**  
                 {row.get('kecamatan', '')} - {row.get('kelurahan', '')}  
                 Suhu: **{suhu}°C** {icon}  
+                Cuaca: {row.get('cuaca', 'Tidak tersedia')}  
                 Terakhir diperbarui: {convert_to_wib(row.get('timestamp'))}
             """)
             st.markdown("---")
