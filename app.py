@@ -47,13 +47,13 @@ for item in cuaca_data_raw:
         item['suhu'] = 0
 
 # --- Streamlit UI ---
-st.title("Detail Prediksi Cuaca Per Hari ini")
+st.title("Visualisasi Cuaca")
 
 # Input filter search daerah
 search_daerah = st.text_input("Masukkan daerah (kota/kab/kec/kel):").lower()
 
 # Pilih mode tampilan
-mode = st.radio("Pilih Tampilan:", ('card', 'chart'))
+mode = st.radio("Pilih Tampilan:", ('card', 'chart', 'pie', 'line', 'wordcloud'))
 
 # Filter data sesuai search daerah
 if search_daerah:
@@ -86,6 +86,66 @@ if mode == 'card':
                 Terakhir diperbarui: {convert_to_wib(row.get('timestamp'))}
             """)
             st.markdown("---")
+            
+elif mode == 'line':
+    if df.empty:
+        st.info("Data tidak ditemukan untuk filter yang diberikan.")
+    else:
+        st.subheader("Perubahan Suhu dari Waktu ke Waktu per Kelurahan")
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['hari'] = df['timestamp'].dt.day
+
+        for kelurahan, group in df.groupby('kelurahan'):
+            st.markdown(f"### {kelurahan}")
+            line_chart = alt.Chart(group).mark_line(point=True).encode(
+                x=alt.X('hari:O', title='Tanggal'),
+                y=alt.Y('suhu:Q', title='Suhu (°C)'),
+                tooltip=['hari', 'suhu']
+            ).properties(
+                width=700,
+                height=300
+            )
+            st.altair_chart(line_chart, use_container_width=True)
+
+
+
+elif mode == 'pie':
+    if df.empty:
+        st.info("Data tidak ditemukan untuk filter yang diberikan.")
+    else:
+        st.subheader("Distribusi Jenis Cuaca")
+        count_by_weather = df['cuaca'].value_counts().reset_index()
+        count_by_weather.columns = ['cuaca', 'jumlah']
+
+        pie_chart = alt.Chart(count_by_weather).mark_arc(innerRadius=50).encode(
+            theta=alt.Theta(field="jumlah", type="quantitative"),
+            color=alt.Color(field="cuaca", type="nominal"),
+            tooltip=["cuaca", "jumlah"]
+        ).properties(
+            width=400,
+            height=400
+        )
+
+        st.altair_chart(pie_chart, use_container_width=True)
+
+elif mode == 'wordcloud':
+    from wordcloud import WordCloud
+    import matplotlib.pyplot as plt
+
+    if df.empty:
+        st.info("Data tidak ditemukan untuk filter yang diberikan.")
+    else:
+        st.subheader("Visualisasi Word Cloud dari Jenis Cuaca")
+
+        text = " ".join(df['cuaca'].dropna().tolist())
+        wc = WordCloud(width=800, height=400, background_color='white').generate(text)
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.imshow(wc, interpolation='bilinear')
+        ax.axis('off')
+        st.pyplot(fig)
+
+
 else:
     # Mode chart: pakai Altair chart
     if df.empty:
